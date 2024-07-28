@@ -1,22 +1,17 @@
 import express from "express";
 import axios from "axios";
 import cheerio from "cheerio";
-import https from "https";
 import cors from "cors";
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
+// CORS 설정
 app.use(
   cors({
-    origin: "*", // 또는 필요한 도메인만 허용
+    origin: "https://applygo.onrender.com", // 클라이언트 도메인으로 제한
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-app.use(
-  cors({
-    origin: "https://applygo.onrender.com", // 클라이언트 URL
   })
 );
 
@@ -33,8 +28,7 @@ const fetchDataFromPage = async (
 ) => {
   const url = `https://www.seek.com.au/${keyword}-jobs/in-All-${location}?daterange=${dateRange}&page=${page}`;
   try {
-    const response = await axios.get(url, {});
-    console.log(url);
+    const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
     let jobs = [];
@@ -83,25 +77,21 @@ const fetchDataFromPage = async (
         .toLowerCase()
         .split(",")
         .map((kw) => kw.trim())
-        .filter(Boolean); // 비어 있는 값을 필터링
-
+        .filter(Boolean);
       const excludeKeywordsLower = excludeKeywords
         .toLowerCase()
         .split(",")
         .map((kw) => kw.trim())
-        .filter(Boolean); // 비어 있는 값을 필터링
+        .filter(Boolean);
 
-      // `includeKeywords` 중 하나라도 제목에 포함되면 true
       const includesAnyKeywords =
         includeKeywordsLower.length === 0 ||
         includeKeywordsLower.some((kw) => titleLower.includes(kw));
 
-      // `excludeKeywords` 중 하나라도 제목에 포함되면 false
       const excludesAnyKeywords =
         excludeKeywordsLower.length === 0 ||
         !excludeKeywordsLower.some((kw) => titleLower.includes(kw));
 
-      // 필터링 적용
       if (includesAnyKeywords && excludesAnyKeywords) {
         jobs.push({
           title,
@@ -117,7 +107,7 @@ const fetchDataFromPage = async (
 
     return jobs;
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching data:", error);
     return [];
   }
 };
@@ -132,7 +122,6 @@ const fetchDataFromAllPages = async (
   excludeKeywords
 ) => {
   let allJobs = [];
-  // 최대 3페이지까지 가져오도록 제한
   const maxPages = 3;
   for (let page = 1; page <= Math.min(pages, maxPages); page++) {
     const jobs = await fetchDataFromPage(
