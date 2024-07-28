@@ -7,14 +7,7 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // CORS 설정
-app.use(
-  cors({
-    origin: "https://applygo-35e08.web.app/", // 클라이언트 도메인으로 제한
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
+app.use(cors());
 app.use(express.json());
 
 // 데이터 가져오기 함수
