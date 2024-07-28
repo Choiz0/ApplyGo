@@ -27,6 +27,7 @@ import { Link } from "react-router-dom";
 //   console.log("Response data:", response.data); // 추가된 로그
 //   return response.data;
 // };
+const API_URL = process.env.REACT_APP_API_URL || "https://applygo.onrender.com";
 const fetchJobs = async (
   dateRange,
   location,
@@ -34,11 +35,21 @@ const fetchJobs = async (
   includeKeywords,
   excludeKeywords
 ) => {
-  const response = await axios.get("https://applygo.onrender.com/fetch-data", {
-    params: { dateRange, location, keyword, includeKeywords, excludeKeywords },
-  });
-  console.log("Response data:", response.data);
-  return response.data;
+  try {
+    const response = await axios.get(`${API_URL}/fetch-data`, {
+      params: {
+        dateRange,
+        location,
+        keyword,
+        includeKeywords,
+        excludeKeywords,
+      },
+    });
+    console.log("Response data:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
 };
 
 const JobBoard = () => {
