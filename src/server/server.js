@@ -14,6 +14,12 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.use(
+  cors({
+    origin: "https://applygo.onrender.com", // 클라이언트 URL
+  })
+);
+
 app.use(express.json());
 
 // 데이터 가져오기 함수

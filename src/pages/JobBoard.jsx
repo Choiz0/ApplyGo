@@ -14,6 +14,19 @@ import { useQuery } from "react-query";
 import { Link } from "react-router-dom";
 
 // 데이터 가져오기 함수
+// const fetchJobs = async (
+//   dateRange,
+//   location,
+//   keyword,
+//   includeKeywords,
+//   excludeKeywords
+// ) => {
+//   const response = await axios.get("http://localhost:3001/fetch-data", {
+//     params: { dateRange, location, keyword, includeKeywords, excludeKeywords },
+//   });
+//   console.log("Response data:", response.data); // 추가된 로그
+//   return response.data;
+// };
 const fetchJobs = async (
   dateRange,
   location,
@@ -21,10 +34,10 @@ const fetchJobs = async (
   includeKeywords,
   excludeKeywords
 ) => {
-  const response = await axios.get("http://localhost:3001/fetch-data", {
+  const response = await axios.get("https://applygo.onrender.com/fetch-data", {
     params: { dateRange, location, keyword, includeKeywords, excludeKeywords },
   });
-  console.log("Response data:", response.data); // 추가된 로그
+  console.log("Response data:", response.data);
   return response.data;
 };
 
