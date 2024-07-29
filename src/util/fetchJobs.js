@@ -1,29 +1,29 @@
-import express from "express";
+// src/api/fetchJobs.js
 import axios from "axios";
 import cheerio from "cheerio";
-import cors from "cors";
 
-const app = express();
-const port = 3001;
-
-// CORS 설정
-app.use(cors());
-app.use(express.json());
-
-// 데이터 가져오기 함수
-const fetchDataFromPage = async (
-  page,
+const fetchJobs = async (
   dateRange,
   location,
   keyword,
   includeKeywords,
   excludeKeywords
 ) => {
-  const url = `https://www.seek.com.au/${keyword}-jobs/in-All-${location}?daterange=${dateRange}&page=${page}`;
+  const url = `https://www.seek.com.au/${keyword}-jobs/in-All-${location}?daterange=${dateRange}&page=1`;
   try {
-    const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
+    const response = await axios.get(url, {
+      proxy: {
+        host: "brd.superproxy.io",
+        port: 22225,
+        auth: {
+          username: "brd-customer-hl_67f8a8df-zone-applygo",
+          password: "trcyr34w8wg5",
+        },
+        rejectUnauthorized: false,
+      },
+    });
 
+    const $ = cheerio.load(response.data);
     let jobs = [];
     $("article").each((index, element) => {
       const title = $(element)
@@ -105,58 +105,4 @@ const fetchDataFromPage = async (
   }
 };
 
-// 여러 페이지에서 데이터 가져오기 함수
-const fetchDataFromAllPages = async (
-  pages,
-  dateRange,
-  location,
-  keyword,
-  includeKeywords,
-  excludeKeywords
-) => {
-  let allJobs = [];
-  const maxPages = 3;
-  for (let page = 1; page <= Math.min(pages, maxPages); page++) {
-    const jobs = await fetchDataFromPage(
-      page,
-      dateRange,
-      location,
-      keyword,
-      includeKeywords,
-      excludeKeywords
-    );
-    allJobs = [...allJobs, ...jobs];
-  }
-  return allJobs;
-};
-
-// 데이터 요청 처리 라우트
-app.get("/fetch-data", async (req, res) => {
-  const {
-    pages = 1,
-    dateRange,
-    location,
-    keyword,
-    includeKeywords,
-    excludeKeywords,
-  } = req.query;
-
-  try {
-    const jobs = await fetchDataFromAllPages(
-      parseInt(pages, 10),
-      dateRange,
-      location,
-      keyword,
-      includeKeywords,
-      excludeKeywords
-    );
-    res.json(jobs);
-  } catch (error) {
-    console.error("Error fetching jobs:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+export default fetchJobs;
