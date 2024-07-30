@@ -1,4 +1,14 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Form,
+  ListGroup,
+  Col,
+  Row,
+  Button,
+  Modal,
+  Card,
+} from "react-bootstrap";
 import {
   collection,
   addDoc,
@@ -6,15 +16,11 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import Modal from "react-bootstrap/Modal";
-import Card from "react-bootstrap/Card";
-import { auth } from "../firebase";
 import { useAuth } from "../util/authContext";
 import { db } from "../firebase";
 
 const PortfolioPage = () => {
   const currentUser = useAuth();
-
   const userId = currentUser.user.uid;
 
   const [Portfolio, setPortfolio] = useState({
@@ -24,6 +30,7 @@ const PortfolioPage = () => {
   });
   const [portfolioList, setPortfolioList] = useState([]);
   const [modalShow, setModalShow] = useState(false);
+
   const handleClose = () => setModalShow(false);
   const handleShow = () => setModalShow(true);
 
@@ -50,7 +57,7 @@ const PortfolioPage = () => {
           link: "",
         });
         handleClose();
-        await getPortfolio(); // Fetch the updated portfolio list after adding
+        await getPortfolio();
       }
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -67,6 +74,7 @@ const PortfolioPage = () => {
     }));
     setPortfolioList(list);
   };
+
   const handleDelete = async (id) => {
     await deleteDoc(doc(db, `users/${userId}/portfolio`, id));
     await getPortfolio();
@@ -74,101 +82,95 @@ const PortfolioPage = () => {
 
   useEffect(() => {
     getPortfolio();
-    console.log(currentUser.isLoggedIn);
-  }, []); // Removed portfolioList from dependency array to avoid infinite loop
+  }, []);
 
   return (
-    <div className="container mt-5 ">
+    <Container className="mt-5">
       <h1 className="text-center">Portfolio</h1>
-      <button type="button" className="btn btn-info m-3" onClick={handleShow}>
+      <Button variant="info" className="m-3" onClick={handleShow}>
         Add Portfolio
-      </button>
+      </Button>
 
-      <div className=" mt-2 d-flex">
-        {portfolioList &&
-          portfolioList?.map((portfolio) => (
-            <Card className="border-primary col-3 m-3" key={portfolio.id}>
-              <Card.Header className="border-primary bg-primary text-white ">
+      <Row className="mt-2 g-3">
+        {portfolioList.map((portfolio) => (
+          <Col xs={12} md={6} lg={4} key={portfolio.id}>
+            <Card className="border-primary mb-3">
+              <Card.Header className="bg-primary text-white">
                 {portfolio.title}
               </Card.Header>
-              <div className="card-body">
-                {" "}
+              <Card.Body>
                 <p>{portfolio.description}</p>
                 <a
                   href={portfolio.link}
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="btn btn-link"
                 >
-                  Link
+                  View Project
                 </a>
-              </div>
-              <div className="card-footer d-flex justify-content-end">
-                {" "}
-                <button
+              </Card.Body>
+              <Card.Footer className="d-flex justify-content-end">
+                <Button
+                  variant="danger"
+                  size="sm"
                   onClick={() => handleDelete(portfolio.id)}
-                  className="btn btn-danger "
                 >
                   Delete
-                </button>
-              </div>
+                </Button>
+              </Card.Footer>
             </Card>
-          ))}
-      </div>
+          </Col>
+        ))}
+      </Row>
 
-      <Modal
-        onHide={handleClose}
-        show={modalShow}
-        aria-labelledby="contained-modal-title-vcenter p-5"
-        centered
-      >
-        {" "}
-        <Modal.Header className="modal-header">
-          <h3>Add Portfolio</h3>
+      <Modal show={modalShow} onHide={handleClose} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Portfolio</Modal.Title>
         </Modal.Header>
-        <form className="form  p-5 " onSubmit={onSubmit}>
+        <Form onSubmit={onSubmit}>
           <Modal.Body>
-            <div className="form-group mb-2">
-              <label htmlFor="title">Title</label>
-              <input
+            <Form.Group className="mb-3">
+              <Form.Label>Title</Form.Label>
+              <Form.Control
                 type="text"
-                onChange={onChange}
-                value={Portfolio.title}
                 name="title"
-                className="form-control"
-              />
-            </div>
-            <div className="form-group mb-2">
-              <label htmlFor="description">Description</label>
-              <input
-                type="text"
+                value={Portfolio.title}
                 onChange={onChange}
-                value={Portfolio.description}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                type="text"
                 name="description"
-                className="form-control"
-              />
-            </div>
-            <div className="form-group mb-2">
-              <label htmlFor="link">Link</label>
-              <input
-                type="text"
+                value={Portfolio.description}
                 onChange={onChange}
-                value={Portfolio.link}
-                name="link"
-                className="form-control"
+                required
               />
-            </div>
-            <Modal.Footer>
-              <button type="submit" className="btn btn-primary  ">
-                Add Portfolio
-              </button>
-              <button onClick={handleClose} className="btn btn-secondary">
-                Close
-              </button>
-            </Modal.Footer>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Link</Form.Label>
+              <Form.Control
+                type="text"
+                name="link"
+                value={Portfolio.link}
+                onChange={onChange}
+                required
+              />
+            </Form.Group>
           </Modal.Body>
-        </form>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleClose}>
+              Close
+            </Button>
+            <Button variant="primary" type="submit">
+              Add Portfolio
+            </Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
-    </div>
+    </Container>
   );
 };
 

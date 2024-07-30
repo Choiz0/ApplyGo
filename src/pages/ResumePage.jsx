@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Container, Form, ListGroup, Col, Row, Button } from "react-bootstrap";
+import {
+  Container,
+  Form,
+  ListGroup,
+  Col,
+  Row,
+  Button,
+  Spinner,
+} from "react-bootstrap";
 import { db } from "../firebase";
 import {
   collection,
@@ -11,42 +19,35 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { useAuth } from "../util/authContext";
+import { useQuery } from "react-query";
+
+const fetchResumes = async (userId) => {
+  const q = query(
+    collection(db, `users/${userId}/resume`),
+    orderBy("timestamp", "desc")
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+    timestamp: doc.data().timestamp?.toDate().toLocaleString().split(",")[0],
+  }));
+};
 
 const ResumePage = () => {
   const [resumeUrl, setResumeUrl] = useState("");
-  const [resumeList, setResumeList] = useState([]);
+  const [previewUrl, setPreviewUrl] = useState("");
   const currentUser = useAuth();
   const userId = currentUser.user.uid;
 
-  // 이력서 목록 불러오기
-  const fetchResumes = async () => {
-    if (currentUser.isLoggedIn) {
-      const q = query(
-        collection(db, `users/${userId}/resume`),
-        orderBy("timestamp", "desc")
-      );
-      const querySnapshot = await getDocs(q);
-      const list = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        // Firestore에서 Timestamp 객체를 읽어와서 날짜 문자열로 변환
-        timestamp: doc
-          .data()
-          .timestamp?.toDate()
-          .toLocaleString()
-          .split(",")[0],
-      }));
-      if (list.length == 0) {
-        setResumeUrl("");
-      }
-      setResumeList(list);
-      await fetchResumes();
-    }
-  };
-
-  useEffect(() => {
-    fetchResumes();
-  }, []);
+  const {
+    data: resumeList,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery(["resumes", userId], () => fetchResumes(userId), {
+    enabled: !!userId,
+  });
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
@@ -54,12 +55,13 @@ const ResumePage = () => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const fileUrl = e.target.result;
-        // Firestore에 파일 정보 저장
         await addDoc(collection(db, `users/${userId}/resume`), {
           url: fileUrl,
           timestamp: new Date(),
           name: file.name,
         });
+        setPreviewUrl(fileUrl);
+        refetch(); // 새로운 이력서 추가 후 목록 새로고침
       };
       reader.readAsDataURL(file);
     }
@@ -67,26 +69,44 @@ const ResumePage = () => {
 
   const handleDelete = async (id) => {
     await deleteDoc(doc(db, `users/${userId}/resume`, id));
-    await fetchResumes();
+    refetch();
   };
 
   const handleResumeClick = (url) => {
-    setResumeUrl(url); // 선택된 이력서 URL로 설정
+    setResumeUrl(url);
+    setPreviewUrl(url);
   };
+
+  if (isLoading) {
+    return (
+      <Container
+        className="d-flex justify-content-center align-items-center"
+        style={{ height: "100vh" }}
+      >
+        <Spinner animation="border" />
+      </Container>
+    );
+  }
+
+  if (error) {
+    return <div>Error loading resumes: {error.message}</div>;
+  }
 
   return (
     <Container>
-      <Row>
+      <Row className="mb-3">
         <Col>
           <h1>Resume</h1>
         </Col>
-        <Form>
-          <Form.Group className="mb-3 col-sm-3">
-            <Form.Label>Upload Resume</Form.Label>
-            <Form.Control type="file" onChange={handleFileChange} />
-          </Form.Group>
-        </Form>
-        <Col>
+      </Row>
+      <Row className="g-3">
+        <Col xs={12} md={6}>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Upload Resume</Form.Label>
+              <Form.Control type="file" onChange={handleFileChange} />
+            </Form.Group>
+          </Form>
           <ListGroup>
             {resumeList.map((resume) => (
               <ListGroup.Item
@@ -99,16 +119,15 @@ const ResumePage = () => {
                     : {}
                 }
               >
-                <div className="">{resume.name}</div>
+                <div>{resume.name}</div>
                 <div>{resume.timestamp}</div>
                 <Button
                   variant="danger"
                   size="sm"
                   onClick={(e) => {
-                    e.stopPropagation(); // 클릭 이벤트 버블링 방지
+                    e.stopPropagation();
                     handleDelete(resume.id);
                   }}
-                  className=""
                 >
                   Delete
                 </Button>
@@ -116,10 +135,10 @@ const ResumePage = () => {
             ))}
           </ListGroup>
         </Col>
-        <Col>
-          {resumeUrl && (
+        <Col xs={12} md={6}>
+          {previewUrl && (
             <iframe
-              src={resumeUrl}
+              src={previewUrl}
               style={{ width: "100%", height: "500px" }}
               frameBorder="0"
               allowFullScreen
